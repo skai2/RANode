@@ -5,7 +5,6 @@ from threading import Thread, Event
 from cmd import Cmd
 import random
 import time
-import names
 
 
 
@@ -17,7 +16,7 @@ def getIP():
         s.connect(("8.8.8.8", 80))
         return s.getsockname()[0]
 
-MYNAME = names.get_first_name().lower()
+MYNAME = str(random.randint(111111, 65535+1))
 DISCOVERY_HOST = '<broadcast>'
 DISCOVERY_PORT = 12345
 NODE_HOST = getIP()
