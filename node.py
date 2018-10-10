@@ -56,6 +56,11 @@ class Node():
                     Thread(target=self.handle_message, args=(message, addr,)).start()
                 except socket.timeout as e:
                     self.send_message(0, 'HeyBrah-'+self.NODE_HOST+'-'+str(self.NODE_PORT)+'-'+self.MYNAME)
+                    for peer in self.peerlist.copy().keys():
+                        tuple = self.peerlist[peer]
+                        if time.time() - tuple[2] > 2:
+                            del self.peerlist[peer]
+                            del self.reversepeer[(tuple[0], tuple[1])]
                     time.sleep(random.random())
                 except Exception as e:
                     print(e)
@@ -82,7 +87,7 @@ class Node():
         split = message.split('-')
         if split[0] == 'HeyBrah':
             if not (split[1] == self.NODE_HOST and int(split[2]) == self.NODE_PORT):
-                self.peerlist[split[3]] = (split[1], int(split[2]))
+                self.peerlist[split[3]] = (split[1], int(split[2]), time.time())
                 self.reversepeer[(split[1], int(split[2]))] = split[3]
         else:
             if self.debug:
