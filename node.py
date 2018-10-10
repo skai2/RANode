@@ -2,7 +2,6 @@
 
 import socket
 from threading import Thread, Event
-from queue import Queue
 from cmd import Cmd
 import random
 import time
