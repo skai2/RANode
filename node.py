@@ -82,7 +82,7 @@ class Node():
                 self.peerlist[split[3]] = (split[1], int(split[2]))
                 self.reversepeer[(split[1], int(split[2]))] = split[3]
         else:
-            print("---%s %s" % (self.reversepeer[addr], message))
+            print("from %s %s" % (self.reversepeer[addr], message))
 
 # SENDERS ----------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -131,7 +131,7 @@ class NodeCMD(Cmd):
         '''Lists all peers.'''
         self.node.peers()
 
-    def do_to(self, args):
+    def do_send(self, args):
         """Sends a message."""
         args = args.split()
         message = 'test'
