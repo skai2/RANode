@@ -38,7 +38,7 @@ class Node():
                 print("peer %s-(%s, %5d)" % \
                     (peer, self.peerlist[peer][0], self.peerlist[peer][1]))
             print('done')
-        return peers
+        return self.peerlist
 
 # LISTENERS ----------------------------------------------------------------------
 # ------------------------------------------------------------------------------
