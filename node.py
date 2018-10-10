@@ -110,6 +110,7 @@ class Node(Cmd):
         print('--<<<[ (%s)-(%s, %d) ]>>>--' % (MYNAME, NODE_HOST, NODE_PORT))
 
     def do_peers(self, args):
+        '''Lists all peers.'''
         for peer in peers.keys():
             print("[(%s)-(%s, %d)]" % (peer, peers[peer][0], peers[peer][1]))
 
