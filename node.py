@@ -47,7 +47,10 @@ class Node():
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((self.DISCOVERY_HOST, self.DISCOVERY_PORT))
+            try:
+                s.bind((self.DISCOVERY_HOST, self.DISCOVERY_PORT))
+            except Exception as e:
+                print(e)
             s.settimeout(1)
             discovering.set()
             while discovering.is_set():
@@ -69,7 +72,10 @@ class Node():
     def listener(self, listening):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((self.NODE_HOST, self.NODE_PORT))
+            try:
+                s.bind((self.NODE_HOST, self.NODE_PORT))
+            except Exception as e:
+                print(e)
             s.settimeout(1)
             listening.set()
             while listening.is_set():
