@@ -49,8 +49,8 @@ class RANode(Node):
                 self.handle_reply(msg.from_id, msg.timestamp)
 
     def use_resource(self):
-        for i in range(self.HSN, self.HSN+10):
-            print("print:", i)
+        for i in range(1, 11):
+            print("using: (%d)%2d" % (self.HSN, i))
             time.sleep(1)
         self.current_state = State.Free
         reply = Message(self.MYNAME, MessageType.Reply, self.OSN)
