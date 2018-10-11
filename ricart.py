@@ -4,6 +4,9 @@ from node import *
 from enum import Enum
 import time
 
+DEBUGnode = False
+DEBUGricart = False
+
 
 
 class MessageType(Enum):
@@ -36,7 +39,7 @@ class RANode(Node):
         self.HSN = 0
         self.OSN = 0
         self.waiting_peers = list()
-        super(RANode, self).__init__(debug=False)
+        super(RANode, self).__init__(debug=DEBUGnode)
 
     def handle_message(self, message, addr):
         handled_msg = super(RANode, self).handle_message(message, addr)
@@ -50,9 +53,11 @@ class RANode(Node):
 
     def use_resource(self):
         self.HSN += 1
-        for i in range(1, 11):
+        print ('------------')
+        for i in range(0, 10):
             print("using: (%d)%2d" % (self.HSN, i))
-            time.sleep(1)
+            time.sleep(0.5)
+        print ('------------')
         self.current_state = State.Free
         reply = Message(self.MYNAME, MessageType.Reply, self.OSN)
         for nodeid in self.waiting_peers:
@@ -64,25 +69,31 @@ class RANode(Node):
         self.OSN = self.HSN+1
         for peer in self.peerlist.keys():
             if not self.replies[int(peer)]:
-                print('Sending request to ', peer)
+                if DEBUGricart:
+                    print('Sending request to ', peer)
                 request = Message(self.MYNAME, MessageType.Request, self.OSN)
                 self.send_message(peer, request.toString())
 
     def check_replies(self):
         for peer in self.peerlist.keys():
             if not self.replies[int(peer)]:
-                print('Peer', peer, 'did not reply yet')
+                if DEBUGricart:
+                    print('Peer', peer, 'did not reply yet')
                 return False
-        print('Got all replies')
+        if DEBUGricart:
+            print('Got all replies')
         return True
 
     def handle_reply(self, from_id, timestamp):
-        print('Handling reply from: ', from_id)
+        if DEBUGricart:
+            print('Handling reply from: ', from_id)
         if self.current_state != State.Waiting:
             #something wrong
-            print('Received Reply and state != waiting')
+            if DEBUGricart:
+                print('Received Reply and state != waiting')
         else:
-            print('Reply from', from_id, 'set to true')
+            if DEBUGricart:
+                print('Reply from', from_id, 'set to true')
             self.replies[from_id] = True
             if self.check_replies():
                 self.current_state = State.Using
@@ -97,17 +108,20 @@ class RANode(Node):
             return int(self.MYNAME) < from_id
 
     def handle_request(self, from_id, timestamp):
-        print('Handling request from: ', from_id)
+        if DEBUGricart:
+            print('Handling request from: ', from_id)
         self.HSN = max(self.HSN, timestamp)
         self.replies[from_id] = False
         if self.current_state == State.Free:
             reply = Message(self.MYNAME, MessageType.Reply, self.OSN)
-            print('Sending reply to', from_id)
+            if DEBUGricart:
+                print('Sending reply to', from_id)
             self.send_message(from_id, reply.toString())
         elif self.current_state == State.Waiting:
             if self.higher_priority(from_id, timestamp):
                 reply = Message(self.MYNAME, MessageType.Reply, self.OSN)
-                print('Sending reply to', from_id)
+                if DEBUGricart:
+                    print('Sending reply to', from_id)
                 self.send_message(from_id, reply.toString())
             else:
                 self.waiting_peers.append(from_id)
