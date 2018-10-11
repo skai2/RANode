@@ -1,10 +1,10 @@
-#!/usrt/bin/env python3
+#!/usr/bin/env python3
 
 from node import *
 from enum import Enum
 import time
 
-waiting_peers = list()
+
 
 class MessageType(Enum):
     Request = 0
@@ -35,6 +35,7 @@ class RANode(Node):
         self.current_state = State.Free
         self.HSN = 0
         self.OSN = 0
+        self.waiting_peers = list()
         super(RANode, self).__init__(debug=False)
 
     def handle_message(self, message, addr):
@@ -48,15 +49,15 @@ class RANode(Node):
                 self.handle_reply(msg.from_id, msg.timestamp)
 
     def use_resource(self):
-        r =  random.randint(5,15)
-        print('Using resource for', r, 'seconds')
-        time.sleep(r)
+        for i in range(self.HSN, self.HSN+10):
+            print("print:", i)
+            time.sleep(1)
         self.current_state = State.Free
         reply = Message(self.MYNAME, MessageType.Reply, self.OSN)
-        for nodeid in waiting_peers:
+        for nodeid in self.waiting_peers:
             self.send_message(nodeid, reply.toString())
-        waiting_peers.clear()
-    
+        self.waiting_peers.clear()
+
     def send_request(self):
         self.current_state = State.Waiting
         self.OSN = self.HSN+1
@@ -73,7 +74,7 @@ class RANode(Node):
                 return False
         print('Got all replies')
         return True
-    
+
     def handle_reply(self, from_id, timestamp):
         print('Handling reply from: ', from_id)
         if self.current_state != State.Waiting:
@@ -85,15 +86,15 @@ class RANode(Node):
             if self.check_replies():
                 self.current_state = State.Using
                 self.use_resource()
-    
+
     def higher_priority(self, from_id, timestamp):
         if self.OSN < timestamp:
             return False
         elif self.OSN > timestamp:
             return True
         else:
-            return myid < from_id
-    
+            return int(self.MYNAME) < from_id
+
     def handle_request(self, from_id, timestamp):
         print('Handling request from: ', from_id)
         self.HSN = max(self.HSN, timestamp)
@@ -108,12 +109,13 @@ class RANode(Node):
                 print('Sending reply to', from_id)
                 self.send_message(from_id, reply.toString())
             else:
-                waiting_list.append(from_id)
+                self.waiting_peers.append(from_id)
         else:
-            waiting_list.append(from_id)
+            self.waiting_peers.append(from_id)
 
 if __name__ == '__main__':
     node = RANode()
-    time.sleep(random.randint(3,10))
-    if random.randint(0,2) == 1:
-        node.send_request()
+    while 1:
+        time.sleep(random.randint(3,10))
+        if node.current_state == State.Free and random.randint(0,2) == 1:
+            node.send_request()
