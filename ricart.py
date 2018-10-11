@@ -5,7 +5,7 @@ from enum import Enum
 import time
 
 DEBUGnode = False
-DEBUGricart = False
+DEBUGricart = True
 
 
 
@@ -55,7 +55,7 @@ class RANode(Node):
         self.HSN += 1
         print ('------------')
         for i in range(0, 10):
-            print("using: (%d)%2d" % (self.HSN, i))
+            print("using: (%d)%2d" % (self.OSN, i))
             time.sleep(0.5)
         print ('------------')
         self.current_state = State.Free
@@ -110,7 +110,7 @@ class RANode(Node):
     def handle_request(self, from_id, timestamp):
         if DEBUGricart:
             print('Handling request from: ', from_id)
-        self.HSN = max(self.HSN, timestamp)
+        self.HSN = max(self.HSN, timestamp) + 1
         self.replies[from_id] = False
         if self.current_state == State.Free:
             reply = Message(self.MYNAME, MessageType.Reply, self.OSN)

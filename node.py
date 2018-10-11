@@ -25,9 +25,9 @@ class Node():
         self.listening = Event()
         Thread(target=self.discoverer, args=(self.discovering,)).start()
         Thread(target=self.listener, args=(self.listening,)).start()
-        if self.debug:
-            print('-<<[(Node %s)-(%s, %5d)]>>-' % \
-                (self.MYNAME, self.NODE_HOST, self.NODE_PORT))
+        # if self.debug:
+        print('-<<[(Node %s)-(%s, %5d)]>>-' % \
+            (self.MYNAME, self.NODE_HOST, self.NODE_PORT))
 
     def kill(self):
         self.discovering.clear()
