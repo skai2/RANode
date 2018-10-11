@@ -18,6 +18,7 @@ class Node():
         self.NODE_PORT = random.randint(1025, 65535+1)
         self.peerlist = {}
         self.reversepeer = {}
+        self.replies = {}
         self.debug = debug
 
         self.discovering = Event()
@@ -94,10 +95,13 @@ class Node():
         if split[0] == 'HeyBrah':
             if not (split[1] == self.NODE_HOST and int(split[2]) == self.NODE_PORT):
                 self.peerlist[split[3]] = (split[1], int(split[2]), time.time())
+                self.replies[int(split[3])] = False
                 self.reversepeer[(split[1], int(split[2]))] = split[3]
+            return ''
         else:
             if self.debug:
                 print("from %s %s" % (self.reversepeer[addr], message))
+        return message
 
 # SENDERS ----------------------------------------------------------------------
 # ------------------------------------------------------------------------------
