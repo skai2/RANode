@@ -48,9 +48,9 @@ class RANode(Node):
                 self.handle_reply(msg.from_id, msg.timestamp)
 
     def use_resource(self):
-        r =  random.randint(5,15)
-        print('Using resource for', r, 'seconds')
-        time.sleep(r)
+        for i in range(HSN, HSN+10):
+            print("print:", i)
+            time.sleep(1)
         self.current_state = State.Free
         reply = Message(self.MYNAME, MessageType.Reply, self.OSN)
         for nodeid in waiting_peers:
@@ -114,6 +114,7 @@ class RANode(Node):
 
 if __name__ == '__main__':
     node = RANode()
-    time.sleep(random.randint(3,10))
-    if random.randint(0,2) == 1:
-        node.send_request()
+    while 1:
+        time.sleep(random.randint(3,10))
+        if node.current_state == State.Free and random.randint(0,2) == 1:
+            node.send_request()
