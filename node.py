@@ -2,39 +2,40 @@
 
 import socket
 from threading import Thread, Event
+from queue import Queue
 from cmd import Cmd
 import random
 import time
+
 
 
 class Node():
 # MAIN -------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
     def __init__(self, debug):
-        self.MYNAME = str(random.randint(111111, 999999))
+        self.DEBUG = debug
+        self.ID = str(random.randint(111111, 999999))
         self.DISCOVERY_HOST = '<broadcast>'
         self.DISCOVERY_PORT = 12345
         self.NODE_HOST = Node.getIP()
         self.NODE_PORT = random.randint(1025, 65535+1)
+        self.messages = Queue()
         self.peerlist = {}
         self.reversepeer = {}
-        self.replies = {}
-        self.debug = debug
-
         self.discovering = Event()
         self.listening = Event()
         Thread(target=self.discoverer, args=(self.discovering,)).start()
         Thread(target=self.listener, args=(self.listening,)).start()
-        # if self.debug:
-        print('-<<[(Node %s)-(%s, %5d)]>>-' % \
-            (self.MYNAME, self.NODE_HOST, self.NODE_PORT))
+        if self.DEBUG:
+            print('-<<[(Node %s)-(%s, %5d)]>>-' % \
+                (self.MYNAME, self.NODE_HOST, self.NODE_PORT))
 
     def kill(self):
         self.discovering.clear()
         self.listening.clear()
 
     def peers(self):
-        if self.debug:
+        if self.DEBUG:
             for peer in self.peerlist.keys():
                 print("peer %s-(%s, %5d)" % \
                     (peer, self.peerlist[peer][0], self.peerlist[peer][1]))
@@ -95,13 +96,12 @@ class Node():
         if split[0] == 'HeyBrah':
             if not (split[1] == self.NODE_HOST and int(split[2]) == self.NODE_PORT):
                 self.peerlist[split[3]] = (split[1], int(split[2]), time.time())
-                self.replies[int(split[3])] = False
                 self.reversepeer[(split[1], int(split[2]))] = split[3]
             return ''
         else:
-            if self.debug:
+            if self.DEBUG:
                 print("from %s %s" % (self.reversepeer[addr], message))
-        return message
+            self.messages.put(message)
 
 # SENDERS ----------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ class Node():
                 ip = self.peerlist[str(id)][0]
                 port = self.peerlist[str(id)][1]
             except KeyError as e:
-                if self.debug:
+                if self.DEBUG:
                     print('---- Invalid peer ->', e)
                 return
         try:

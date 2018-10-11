@@ -3,11 +3,13 @@
 from node import *
 from enum import Enum
 import time
+from threading import Lock
+
+
 
 DEBUGnode = False
 DEBUGricart = True
-
-
+lock = Lock()
 
 class MessageType(Enum):
     Request = 0
@@ -15,7 +17,7 @@ class MessageType(Enum):
 
 class Message:
     def __init__(self, from_id=0, msg_type=MessageType.Request, timestamp=0):
-        self.from_id = int(from_id)
+        self.from_id = from_id
         self.type = msg_type.value
         self.timestamp = int(timestamp)
 
@@ -42,14 +44,15 @@ class RANode(Node):
         super(RANode, self).__init__(debug=DEBUGnode)
 
     def handle_message(self, message, addr):
-        handled_msg = super(RANode, self).handle_message(message, addr)
-        if handled_msg:
-            msg = Message()
-            msg.fromString(handled_msg)
-            if msg.type == MessageType.Request.value:
-                self.handle_request(msg.from_id, msg.timestamp)
-            elif msg.type == MessageType.Reply.value:
-                self.handle_reply(msg.from_id, msg.timestamp)
+        with lock:
+            handled_msg = super(RANode, self).handle_message(message, addr)
+            if handled_msg:
+                msg = Message()
+                msg.fromString(handled_msg)
+                if msg.type == MessageType.Request.value:
+                    self.handle_request(msg.from_id, msg.timestamp)
+                elif msg.type == MessageType.Reply.value:
+                    self.handle_reply(msg.from_id, msg.timestamp)
 
     def use_resource(self):
         self.HSN += 1
