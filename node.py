@@ -28,7 +28,7 @@ class Node():
         Thread(target=self.listener, args=(self.listening,)).start()
         if self.DEBUG:
             print('-<<[(Node %s)-(%s, %5d)]>>-' % \
-                (self.MYNAME, self.NODE_HOST, self.NODE_PORT))
+                (self.ID, self.NODE_HOST, self.NODE_PORT))
 
     def kill(self):
         self.discovering.clear()
@@ -60,10 +60,10 @@ class Node():
                     message, addr = s.recvfrom(1024)
                     Thread(target=self.handle_message, args=(message, addr,)).start()
                 except socket.timeout as e:
-                    self.send_message(0, 'HeyBrah-'+self.NODE_HOST+'-'+str(self.NODE_PORT)+'-'+self.MYNAME)
+                    self.send_message(0, 'HeyBrah-'+self.NODE_HOST+'-'+str(self.NODE_PORT)+'-'+self.ID)
                     for peer in self.peerlist.copy().keys():
                         tuple = self.peerlist[peer]
-                        if time.time() - tuple[2] > 2:
+                        if time.time() - tuple[2] > 5:
                             del self.peerlist[peer]
                             del self.reversepeer[(tuple[0], tuple[1])]
                     time.sleep(random.random())
@@ -78,14 +78,11 @@ class Node():
                 s.bind((self.NODE_HOST, self.NODE_PORT))
             except Exception as e:
                 print(e)
-            s.settimeout(1)
             listening.set()
             while listening.is_set():
                 try:
                     message, addr = s.recvfrom(1024)
                     Thread(target=self.handle_message, args=(message, addr,)).start()
-                except socket.timeout as e:
-                    pass
                 except Exception as e:
                     print(e)
             s.close()
