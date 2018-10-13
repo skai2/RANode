@@ -63,7 +63,7 @@ class Node():
                     self.send_message(0, 'HeyBrah-'+self.NODE_HOST+'-'+str(self.NODE_PORT)+'-'+self.ID)
                     for peer in self.peerlist.copy().keys():
                         tuple = self.peerlist[peer]
-                        if time.time() - tuple[2] > 5:
+                        if time.time() - tuple[2] > 10:
                             del self.peerlist[peer]
                             del self.reversepeer[(tuple[0], tuple[1])]
                     time.sleep(random.random())

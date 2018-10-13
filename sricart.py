@@ -55,7 +55,7 @@ class RANode():
     def free(self):
         while self.current_state == State.Free:
             try:
-                msg_string = self.node.messages.get(block=True,timeout=0.05)
+                msg_string = self.node.messages.get(block=True,timeout=0.55)
                 self.msg.fromString(msg_string)
                 if self.msg.type == MessageType.Request.value:
                     debug_print(self.node.ID,self.current_state,'| request received. Replying to',self.msg.from_id)
@@ -129,5 +129,5 @@ if __name__ == '__main__':
     node = RANode()
     while 1:
         time.sleep(random.randint(3,16))
-        if random.randint(0,3) == 1:
+        if random.randint(0,2) == 1:
             node.willing_to_use = True
