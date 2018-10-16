@@ -8,7 +8,7 @@ from threading import Lock
 
 
 
-DEBUGnode = False
+DEBUGnode = True
 DEBUGricart = True
 lock = Lock()
 
@@ -48,7 +48,7 @@ class RANode():
         self.HSN = 0
         self.OSN = 0
         self.msg = Message()
-        self.reply_count = 0
+        self.pending_replies = set()
         self.waiting_peers = list()
         Thread(target=self.free).start()
 
@@ -67,8 +67,8 @@ class RANode():
                     self.current_state = State.Waiting
                     self.OSN = self.HSN+1
                     self.HSN = self.OSN
-                    self.reply_count = len(self.node.peerlist)
                     for nodeid in self.node.peerlist.keys():
+                        self.pending_replies.add(nodeid)
                         self.send_request(nodeid)
             except Exception as e:
                 print(e)
@@ -76,22 +76,28 @@ class RANode():
 
     def waiting(self):
         while self.current_state == State.Waiting:
-            msg_string = self.node.messages.get()
-            self.msg.fromString(msg_string)
-            if self.msg.type == MessageType.Request.value:
-                self.HSN = max(self.HSN, self.msg.timestamp) + 1
-                if self.my_priority():
-                    debug_print(self.node.ID,self.current_state,'| request received. Deferred',self.msg.from_id)
-                    self.waiting_peers.append(self.msg.from_id)
-                else:
-                    debug_print(self.node.ID,self.current_state,'| request received. Replying to',self.msg.from_id)
-                    self.send_reply(self.msg.from_id)
-            elif self.msg.type == MessageType.Reply.value:
-                self.reply_count -= 1
-                debug_print(self.node.ID,self.current_state,'| reply received from',self.msg.from_id,'. Left:',self.reply_count)
-                if self.reply_count == 0:
-                    self.current_state = State.Using
-            self.node.messages.task_done()
+            try:
+                msg_string = self.node.messages.get(block=True,timeout=5)
+                self.msg.fromString(msg_string)
+                if self.msg.type == MessageType.Request.value:
+                    self.HSN = max(self.HSN, self.msg.timestamp) + 1
+                    if self.my_priority():
+                        debug_print(self.node.ID,self.current_state,'| request received. Deferred',self.msg.from_id)
+                        self.waiting_peers.append(self.msg.from_id)
+                    else:
+                        debug_print(self.node.ID,self.current_state,'| request received. Replying to',self.msg.from_id)
+                        self.send_reply(self.msg.from_id)
+                elif self.msg.type == MessageType.Reply.value:
+                    self.pending_replies.discard(self.msg.from_id)
+                    debug_print(self.node.ID,self.current_state,'| reply received from',self.msg.from_id,'. Left:',len(self.pending_replies),self.pending_replies)
+                    if len(self.pending_replies) == 0:
+                        self.current_state = State.Using
+                self.node.messages.task_done()
+            except Empty as e:
+                debug_print('Request/reply probably got lost. Re-sending request to pending nodes.')
+                for nodeid in self.pending_replies:
+                    self.send_request(nodeid)
+
         self.using()
 
     def using(self):
