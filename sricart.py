@@ -8,7 +8,7 @@ from threading import Lock
 
 
 
-DEBUGnode = True
+DEBUGnode = False
 DEBUGricart = True
 lock = Lock()
 
@@ -58,7 +58,7 @@ class RANode():
                 msg_string = self.node.messages.get(block=True,timeout=0.55)
                 self.msg.fromString(msg_string)
                 if self.msg.type == MessageType.Request.value:
-                    debug_print(self.node.ID,self.current_state,'| request received. Replying to',self.msg.from_id)
+                    debug_print(self.pretty_header(),'Request received. Replying to',self.msg.from_id)
                     self.HSN = max(self.HSN, self.msg.timestamp) + 1
                     self.send_reply(self.msg.from_id)
                 self.node.messages.task_done()
@@ -82,14 +82,14 @@ class RANode():
                 if self.msg.type == MessageType.Request.value:
                     self.HSN = max(self.HSN, self.msg.timestamp) + 1
                     if self.my_priority():
-                        debug_print(self.node.ID,self.current_state,'| request received. Deferred',self.msg.from_id)
+                        debug_print(self.pretty_header(),'Request received. Deferred',self.msg.from_id)
                         self.waiting_peers.append(self.msg.from_id)
                     else:
-                        debug_print(self.node.ID,self.current_state,'| request received. Replying to',self.msg.from_id)
+                        debug_print(self.pretty_header(),'Request received. Replying to',self.msg.from_id)
                         self.send_reply(self.msg.from_id)
                 elif self.msg.type == MessageType.Reply.value:
                     self.pending_replies.discard(self.msg.from_id)
-                    debug_print(self.node.ID,self.current_state,'| reply received from',self.msg.from_id,'. Left:',len(self.pending_replies),self.pending_replies)
+                    debug_print(self.pretty_header(),'Reply received from',self.msg.from_id,'. Left:',len(self.pending_replies),self.pending_replies)
                     if len(self.pending_replies) == 0:
                         self.current_state = State.Using
                 self.node.messages.task_done()
@@ -103,19 +103,19 @@ class RANode():
     def using(self):
         print ('------------')
         for i in range(0, 10):
-            print("using: (%d)%2d" % (self.OSN, i))
+            print("Using: (%d)%2d" % (self.OSN, i))
             time.sleep(0.5)
         print ('------------')
         self.current_state = State.Free
         for nodeid in self.waiting_peers:
-            debug_print(self.node.ID,self.current_state,'| sending deferred reply to',self.msg.from_id)
+            debug_print(self.pretty_header(),'Sending deferred reply to',self.msg.from_id)
             self.send_reply(nodeid)
         self.waiting_peers.clear()
         self.willing_to_use = False
         self.free()
 
     def send_request(self, peer):
-        debug_print('Sending request to ', peer)
+        debug_print(self.pretty_header(),'Sending request to', peer)
         request = Message(self.node.ID, MessageType.Request, self.OSN)
         self.node.send_message(peer, request.toString())
 
@@ -130,6 +130,17 @@ class RANode():
             return False
         else:
             return self.node.ID < self.msg.from_id
+
+    def pretty_header(self):
+        header = "<\033[34m"+self.node.ID+"\x1b[0m,"
+        if self.current_state == State.Free:
+            header = header+"\x1b[1;32;40mFree"+"\x1b[0m>"
+        elif self.current_state == State.Waiting:
+            header = header+"\033[33mWaiting"+"\x1b[0m>"
+        elif self.current_state == State.Using:
+            header = header+"\x1b[1;31;40mUsing"+"\x1b[0m>"
+        return header
+
 
 if __name__ == '__main__':
     node = RANode()
