@@ -7,7 +7,6 @@ import time
 from threading import Lock
 
 
-
 DEBUGnode = False
 DEBUGricart = True
 lock = Lock()
@@ -48,6 +47,7 @@ class RANode():
         self.HSN = 0
         self.OSN = 0
         self.msg = Message()
+        self.authorization = {}
         self.pending_replies = set()
         self.waiting_peers = list()
         Thread(target=self.free).start()
@@ -59,6 +59,7 @@ class RANode():
                 self.msg.fromString(msg_string)
                 if self.msg.type == MessageType.Request.value:
                     debug_print(self.pretty_header(),'Request received. Replying to',self.msg.from_id)
+                    self.authorization[self.msg.from_id] = False
                     self.HSN = max(self.HSN, self.msg.timestamp) + 1
                     self.send_reply(self.msg.from_id)
                 self.node.messages.task_done()
@@ -68,14 +69,18 @@ class RANode():
                     self.OSN = self.HSN+1
                     self.HSN = self.OSN
                     for nodeid in self.node.peerlist.keys():
-                        self.pending_replies.add(nodeid)
-                        self.send_request(nodeid)
+                        if not self.has_authorized(nodeid):
+                            self.pending_replies.add(nodeid)
+                            self.send_request(nodeid)
             except Exception as e:
                 print(e)
         self.waiting()
 
     def waiting(self):
         while self.current_state == State.Waiting:
+            if len(self.pending_replies) == 0:
+                self.current_state = State.Using
+                break
             try:
                 msg_string = self.node.messages.get(block=True,timeout=5)
                 self.msg.fromString(msg_string)
@@ -85,9 +90,13 @@ class RANode():
                         debug_print(self.pretty_header(),'Request received. Deferred',self.msg.from_id)
                         self.waiting_peers.append(self.msg.from_id)
                     else:
+                        if self.has_authorized(self.msg.from_id):
+                            self.pending_replies.add(self.msg.from_id)
                         debug_print(self.pretty_header(),'Request received. Replying to',self.msg.from_id)
                         self.send_reply(self.msg.from_id)
+                    self.authorization[self.msg.from_id] = False
                 elif self.msg.type == MessageType.Reply.value:
+                    self.authorization[self.msg.from_id] = True
                     self.pending_replies.discard(self.msg.from_id)
                     debug_print(self.pretty_header(),'Reply received from',self.msg.from_id,'. Left:',len(self.pending_replies),self.pending_replies)
                     if len(self.pending_replies) == 0:
@@ -97,7 +106,6 @@ class RANode():
                 debug_print('Request/reply probably got lost. Re-sending request to pending nodes.')
                 for nodeid in self.pending_replies:
                     self.send_request(nodeid)
-
         self.using()
 
     def using(self):
@@ -131,6 +139,13 @@ class RANode():
         else:
             return self.node.ID < self.msg.from_id
 
+    def has_authorized(self, nodeid):
+        try:
+            return self.authorization[nodeid]
+        except KeyError as e:
+            self.authorization[nodeid] = False
+            return False
+
     def pretty_header(self):
         header = "<\033[34m"+self.node.ID+"\x1b[0m,"
         if self.current_state == State.Free:
@@ -140,7 +155,6 @@ class RANode():
         elif self.current_state == State.Using:
             header = header+"\x1b[1;31;40mUsing"+"\x1b[0m>"
         return header
-
 
 if __name__ == '__main__':
     node = RANode()
